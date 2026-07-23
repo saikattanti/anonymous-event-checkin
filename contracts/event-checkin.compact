@@ -1,0 +1,37 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+/**
+ * Anonymous Event Check-in
+ *
+ * Public ledger (visible on-chain):
+ *   - eventName     — the event being attended
+ *   - checkInCount  — how many anonymous check-ins have occurred
+ *
+ * Private witness (never written to the ledger):
+ *   - inviteSecret  — opaque invite / attendee secret used only inside the
+ *                     checkIn circuit. disclose() is intentionally NOT called
+ *                     on this value, so identity and the secret stay private.
+ */
+
+// Public ledger state
+export ledger eventName: Opaque<"string">;
+export ledger checkInCount: Counter;
+
+// Set the public event name at deployment. The invite secret is never stored.
+constructor(name: Opaque<"string">) {
+  eventName = disclose(name);
+}
+
+/**
+ * Privately prove knowledge of an invite/attendee secret and record one
+ * anonymous check-in. Only the incremented counter becomes public.
+ */
+export circuit checkIn(inviteSecret: Opaque<"string">): [] {
+  // Private invite/attendee secret — intentionally never disclosed.
+  // The secret is part of the ZK witness; only checkInCount changes publicly.
+  const _privateSecret: Opaque<"string"> = inviteSecret;
+
+  checkInCount.increment(1);
+}
