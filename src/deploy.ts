@@ -7,7 +7,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { resolveNetwork, getOrCreateSeed, recordDeployment } from './network';
-import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
+import { createWallet, persistWalletState, unshieldedToken, waitForWalletSync, type WalletContext } from './wallet';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
 import * as Rx from 'rxjs';
@@ -24,8 +24,8 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Identifier under which this contract's private state is stored. The
-// hello-world contract has no witnesses, so its private state is empty ({}).
-const PRIVATE_STATE_ID = 'helloWorldPrivateState';
+// event-checkin contract has no witnesses, so its private state is empty ({}).
+const PRIVATE_STATE_ID = 'eventCheckinPrivateState';
 
 // ─── Network configuration ─────────────────────────────────────────────────────
 //
@@ -66,7 +66,7 @@ async function waitForProofServer(maxAttempts = 60, delayMs = 2000): Promise<boo
 // ─── Compiled contract loading ─────────────────────────────────────────────────
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'event-checkin');
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
@@ -74,9 +74,9 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+const CheckinContract = await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
+const compiledContract = CompiledContract.make('event-checkin', CheckinContract.Contract).pipe(
   CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
@@ -112,7 +112,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'event-checkin-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -136,27 +136,24 @@ async function main() {
   console.log('─── Wallet setup ───────────────────────────────────────────────\n');
   console.log('  Creating wallet...');
   const walletCtx = await createWallet({ network, networkConfig, seed });
+  const address = walletCtx.unshieldedKeystore.getBech32Address();
+  // Print address + faucet early so public-network wallets can be funded while
+  // sync runs (or before a sync timeout fires).
+  if (network !== 'undeployed' && networkConfig.faucet) {
+    console.log(`  Wallet Address: ${address}`);
+    console.log(`  Faucet:         ${networkConfig.faucet}`);
+    console.log('  Fund this address now if needed — sync starts below.\n');
+  }
   const restoredCount = Object.values(walletCtx.restored).filter(Boolean).length;
   if (restoredCount > 0) {
     console.log(`  Restored ${restoredCount}/3 child wallets from .midnight-wallet-state — sync will resume from saved point.`);
   }
 
-  console.log('  Syncing with network...');
-  console.log('  ℹ  This may take several minutes depending on network size.');
-  console.log('     RPC disconnection messages during sync are normal and can be safely ignored.\n');
-  const syncStart = Date.now();
-  const syncInterval = setInterval(() => {
-    const elapsed = Math.round((Date.now() - syncStart) / 1000);
-    process.stdout.write(`\r  ⏳ Still syncing... (${elapsed}s elapsed)   `);
-  }, 5000);
-  const state = await walletCtx.wallet.waitForSyncedState();
-  clearInterval(syncInterval);
-  process.stdout.write('\r  ✓ Synced with network.                                      \n');
+  const state = await waitForWalletSync(walletCtx, { network, networkConfig });
 
   // Persist sync state now so a later deploy failure doesn't waste the sync work.
   await persistWalletState(network, walletCtx);
 
-  const address = walletCtx.unshieldedKeystore.getBech32Address();
   let balance = state.unshielded.balances[unshieldedToken().raw] ?? 0n;
   console.log(`\n  Wallet Address: ${address}`);
   console.log(`  Balance: ${balance.toLocaleString()} tNight\n`);
@@ -284,14 +281,11 @@ async function main() {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       // Midnight.js 4.1.x supplies private state via privateStateId +
-      // initialPrivateState (empty here — the hello-world contract has no
-      // witnesses). args is the contract constructor's arguments: empty for
-      // hello-world's no-arg constructor. (Statically-typed contracts can omit
-      // args entirely; this script loads the contract dynamically, so the
-      // conditional args type widens to any[] and an explicit [] is required.)
+      // initialPrivateState (empty here — no Compact witnesses). args is the
+      // constructor argument: the public event name written to the ledger.
       deployed = await deployContract(providers, {
         compiledContract: compiledContract as any,
-        args: [],
+        args: ['Anonymous Event Check-in'],
         privateStateId: PRIVATE_STATE_ID,
         initialPrivateState: {},
       });
