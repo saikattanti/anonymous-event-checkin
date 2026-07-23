@@ -193,3 +193,77 @@ export async function persistWalletState(
 
   saveWalletState(network, next, { cwd });
 }
+
+/** Default sync budget for local undeployed (finishes in seconds). */
+export const DEFAULT_SYNC_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** Longer budget for public networks — first Preprod sync can exceed 10 minutes. */
+export const PUBLIC_NETWORK_SYNC_TIMEOUT_MS = 45 * 60 * 1000;
+
+export interface WaitForWalletSyncOptions {
+  network: NetworkId;
+  networkConfig: NetworkConfig;
+  /** Override sync timeout. Defaults by network; env MIDNIGHT_SYNC_TIMEOUT_MS wins. */
+  timeoutMs?: number;
+}
+
+function resolveSyncTimeoutMs(network: NetworkId, override?: number): number {
+  const fromEnv = Number(process.env.MIDNIGHT_SYNC_TIMEOUT_MS);
+  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+  if (override !== undefined) return override;
+  return network === 'undeployed' ? DEFAULT_SYNC_TIMEOUT_MS : PUBLIC_NETWORK_SYNC_TIMEOUT_MS;
+}
+
+/**
+ * Log connection details, then wait for wallet sync with a hard timeout.
+ * Does not read, write, delete, or regenerate `.midnight-state.json`.
+ */
+export async function waitForWalletSync(
+  ctx: WalletContext,
+  opts: WaitForWalletSyncOptions,
+): Promise<Awaited<ReturnType<WalletContext['wallet']['waitForSyncedState']>>> {
+  const { network, networkConfig } = opts;
+  const timeoutMs = resolveSyncTimeoutMs(network, opts.timeoutMs);
+  const address = ctx.unshieldedKeystore.getBech32Address().toString();
+
+  console.log(`  Wallet Address: ${address}`);
+  console.log(`  Network:        ${network}`);
+  console.log(`  Node URL:       ${networkConfig.node}`);
+  console.log(`  Indexer URL:    ${networkConfig.indexer}`);
+  console.log(`  Indexer WS URL: ${networkConfig.indexerWS}`);
+  console.log(`  Sync timeout:   ${Math.round(timeoutMs / 60_000)} min\n`);
+
+  console.log('  Syncing with network...');
+  console.log('  ℹ  This may take several minutes depending on network size.');
+  console.log('     RPC disconnection messages during sync are normal and can be safely ignored.\n');
+
+  const syncStart = Date.now();
+  const syncInterval = setInterval(() => {
+    const elapsed = Math.round((Date.now() - syncStart) / 1000);
+    process.stdout.write(`\r  ⏳ Still syncing... (${elapsed}s elapsed)   `);
+  }, 5000);
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const state = await Promise.race([
+      ctx.wallet.waitForSyncedState(),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          const label = network === 'preprod' ? 'Preprod' : network;
+          reject(
+            new Error(
+              `${label} wallet sync did not complete within ${Math.round(timeoutMs / 60_000)} minutes. ` +
+                'Endpoints may be reachable, but the Midnight wallet SDK did not finish syncing ' +
+                `(Wallet.Sync / shielded+unshielded). Your funded seed in .midnight-state.json was not modified.`,
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+    process.stdout.write('\r  ✓ Synced with network.                                      \n');
+    return state;
+  } finally {
+    clearInterval(syncInterval);
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
+}
