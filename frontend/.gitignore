@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Compiled contract assets copied in for the dev/build server
+public/managed/

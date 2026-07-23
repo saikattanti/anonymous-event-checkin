@@ -1,0 +1,173 @@
+:root {
+  --bg: #0b0f1a;
+  --panel: #141a29;
+  --panel-border: #232c40;
+  --text: #e6e9f0;
+  --muted: #8b93a7;
+  --accent: #6ee7b7;
+  --accent-2: #7dd3fc;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 50% -10%, #16203a 0%, var(--bg) 60%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+
+.app__header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.app__header h1 {
+  margin: 0 0 6px;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.app__subtitle {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.app__meta {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(110, 231, 183, 0.12);
+  color: var(--accent);
+  font-size: 0.8rem;
+  border: 1px solid rgba(110, 231, 183, 0.25);
+}
+
+.badge--muted {
+  background: rgba(139, 147, 167, 0.12);
+  color: var(--muted);
+  border-color: rgba(139, 147, 167, 0.25);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.panel__header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  flex: 1;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.status-dot--on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.status-dot--off { background: var(--muted); }
+.status-label { color: var(--muted); font-size: 0.85rem; }
+
+.btn {
+  background: linear-gradient(180deg, var(--accent) 0%, #34d399 100%);
+  color: #05221a;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.05s ease, opacity 0.2s ease;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+}
+.btn--sm { padding: 6px 10px; font-size: 0.8rem; }
+
+.hint { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+.hint--warn { color: var(--warn); }
+.hint--error { color: var(--danger); }
+
+.wallet-info { display: flex; flex-direction: column; gap: 12px; }
+
+.kv { display: flex; gap: 8px; align-items: baseline; }
+.kv__key { color: var(--muted); font-size: 0.8rem; min-width: 56px; }
+.kv__val { word-break: break-all; font-size: 0.85rem; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field__label { font-size: 0.8rem; color: var(--muted); }
+.field__input {
+  background: #0c1120;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.field__input:focus { outline: none; border-color: var(--accent-2); }
+
+.checkin-form { display: flex; flex-direction: column; }
+
+.stats { display: flex; flex-direction: column; gap: 12px; }
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 14px;
+  background: #0c1120;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+}
+.stat__label { color: var(--muted); font-size: 0.85rem; }
+.stat__value { font-size: 1.3rem; font-weight: 700; }
+
+.result { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 0.9rem; }
+.result--ok { background: rgba(110, 231, 183, 0.1); border: 1px solid rgba(110, 231, 183, 0.3); }
+.result--err { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); }
+.result .kv { margin-top: 6px; }
+
+.app__footer {
+  margin-top: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.app__footer code { color: var(--accent-2); }
