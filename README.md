@@ -1,188 +1,338 @@
-# anonymous-event-checkin
+# Anonymous Event Check-in
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+A **Midnight** DApp where attendees prove they hold a valid invite/check-in secret **without revealing their identity or the secret**. The public ledger shows only the **event name** and a running **anonymous check-in count**.
 
-## Quick start
+Built with Compact **0.31.1**. Contract source lives at `contracts/event-checkin.compact`.
 
-Requirements: Node 22, Docker (with Compose v2), and the Compact compiler at the version pinned in `.compact-version` at the create-mn-app repo root (the version this project was scaffolded against).
+- **Level 1** — Compact contract + local deploy + CLI ✅
+- **Level 2** — Web frontend with Lace wallet connect + `checkIn` circuit call ✅
+- **Level 3** — Tests, CI, privacy model, product proposal, submission checklist ✅
+
+---
+
+## Product Proposal
+
+**Category: Private Allowlist Access**
+
+> An attendee proves they know a valid invite/check-in secret without revealing the secret publicly. The app only reveals that *an* anonymous eligible attendee checked in, and updates the public count.
+
+Event hosts often need a verifiable headcount without collecting wallets, emails, or QR identities on-chain. Guests receive an invite secret out-of-band (DM, badge code, printed pass). At the door — or remotely — they submit a Midnight transaction that **witnesses** that secret inside a zero-knowledge circuit. The chain only learns that "someone who knew a valid secret checked in," and the public counter increments.
+
+This is a reusable building block for **private allowlist access**: gated conferences, DAO-member events, invite-only drops, and any flow where *eligibility* must be provable but *identity* must stay private.
+
+---
+
+## Privacy Model
+
+What an on-chain observer (indexer, explorer, validator) **can** and **cannot** learn:
+
+| An observer CAN see | An observer CANNOT see |
+| --- | --- |
+| The `eventName` (set publicly at deploy) | The invite/attendee secret |
+| The total `checkInCount` | Who checked in (no address is written to the ledger) |
+| That a check-in transaction occurred | Any link between a check-in and a specific person |
+| The ZK proof is valid | The witness data used to build the proof |
+
+How it is enforced in `contracts/event-checkin.compact`:
+
+- `eventName` is written with `disclose(name)` — it is **intentionally** public.
+- `inviteSecret` is an `Opaque<"string">` **circuit input** used only inside the `checkIn` proof. It is **never** passed to `disclose()` and is **never** stored in a ledger field, so it cannot appear on-chain.
+- `checkInCount` is a `Counter`; `checkIn` only calls `checkInCount.increment(1)`, revealing an aggregate — not an identity.
+
+> Note on unlinkability: like any transaction, a check-in is submitted from a wallet that pays fees, so network-level metadata still exists. The **contract** reveals nothing about identity or the secret; the privacy guarantee is at the ledger/state level.
+
+---
+
+## Public state vs private witness
+
+| Layer | What | Visibility |
+| --- | --- | --- |
+| **Public ledger** | `eventName`, `checkInCount` | Anyone can read via the indexer |
+| **Private witness** | `inviteSecret` (`Opaque<"string">` circuit input) | Used only inside the `checkIn` proof; never disclosed, never stored |
+
+---
+
+## Requirements
+
+- Node **22+**
+- Docker (Compose v2) — for the local devnet + proof server
+- Compact compiler **0.31.1**
+
+Install the Compact toolchain and select 0.31.1:
 
 ```bash
-npm install
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
+# restart your shell, then:
+compact update 0.31.1
+```
+
+> On WSL, work from the native Linux filesystem (e.g. `~/midnight-projects/...`) rather than `/mnt/c` or `/mnt/d`. Windows-mounted paths cause `chmod`/permission errors during compile and unreliable wallet sync. If compile complains about `chmod`, `export COMPACT_BACKEND=wasm` before `npm run compile`.
+
+## Install
+
+```bash
+npm install            # backend (contract, deploy, CLI, tests)
+npm run frontend:install   # frontend (Vite + React)
+```
+
+## Compile
+
+```bash
+npm run compile
+```
+
+Runs `compact compile contracts/event-checkin.compact contracts/managed/event-checkin`. Output lands in `contracts/managed/event-checkin/` (JS bindings, ZKIR, keys, circuit metadata).
+
+## Test
+
+```bash
+npm test
+```
+
+Runs the Node test suite in `tests/` (network resolution, state round-trip, and compiled-artifact privacy invariants). Requires `npm run compile` first for the contract-artifact tests.
+
+## Local deploy
+
+One-shot (starts local node + indexer + proof-server, compiles, deploys):
+
+```bash
 npm run setup
+```
+
+Or step by step:
+
+```bash
+docker compose up -d --wait
+npm run compile
+npm run deploy
+```
+
+Deploy writes the contract address to `.midnight-state.json` under `deployments.undeployed`. Interact via the CLI:
+
+```bash
+npm run cli
+```
+
+- **Option 1** — submit an anonymous check-in with a private invite secret
+- **Option 2** — read public `eventName` and `checkInCount`
+
+Smoke-test the deployment:
+
+```bash
 npm run test:e2e
 ```
 
-`npm run setup` runs end-to-end with no prompts:
+### Local devnet ports
 
-1. `docker compose up -d --wait` — starts a local Midnight devnet (node, indexer, proof-server) and blocks until all three pass their healthchecks.
-2. `npm run compile` — compiles `contracts/hello-world.compact` to `contracts/managed/hello-world/`.
-3. `npm run deploy` — derives the genesis-seed wallet (NIGHT pre-minted), registers UTXOs for DUST generation, deploys the contract, writes `.midnight-state.json`.
+| Service | Port | Role |
+| --- | --- | --- |
+| node | 9944 | Midnight `dev` chain |
+| indexer | 8088 | GraphQL public state |
+| proof-server | 6300 | ZK proof generation |
 
-`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. Exits 0 if the contract is live and indexable.
+Tear down: `docker compose down -v`.
 
-## Local devnet
+### Local seed warning
 
-The project ships its own devnet via `docker-compose.yml`:
+Local deploy uses the well-known genesis seed (`0000…0001`). **Do not** use it on Preprod, Preview, or mainnet.
 
-| Service        | Port | Purpose                                         |
-| -------------- | ---- | ----------------------------------------------- |
-| `node`         | 9944 | Midnight node, `dev` chain preset               |
-| `indexer`      | 8088 | GraphQL indexer for chain state                 |
-| `proof-server` | 6300 | Generates ZK proofs for contract transactions   |
+---
 
-State lives in container-managed volumes. Tear everything down with:
+## Frontend (Level 2)
 
-```bash
-docker compose down -v
+A Vite + React + TypeScript app in [`frontend/`](./frontend) that connects the **Lace (Midnight)** wallet and calls the `checkIn` circuit.
+
+Features:
+- Connect / disconnect Lace, with live connection status and address display
+- Network + contract address loaded from environment variables (no hardcoding)
+- Invite-secret input (kept private) and an **Anonymous check-in** button that calls `checkIn`
+- Public state panel showing `eventName` and `checkInCount`
+- Loading, success (tx id + block), and error states
+
+### Run the frontend locally
+
+1. Deploy the contract (local devnet) and note the address:
+
+   ```bash
+   npm run setup
+   # address printed, and saved to .midnight-state.json -> deployments.undeployed
+   ```
+
+2. Configure the frontend:
+
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   ```
+
+   Edit `.env.local`:
+
+   ```env
+   VITE_MIDNIGHT_NETWORK=undeployed
+   VITE_CONTRACT_ADDRESS=<address from .midnight-state.json>
+   # Local devnet services (Lace may not know your localhost endpoints):
+   VITE_INDEXER_URI=http://127.0.0.1:8088/api/v4/graphql
+   VITE_INDEXER_WS_URI=ws://127.0.0.1:8088/api/v4/graphql/ws
+   VITE_PROVER_URI=http://127.0.0.1:6300
+   ```
+
+3. Start it:
+
+   ```bash
+   npm install       # first time only
+   npm run dev       # http://localhost:5173
+   ```
+
+   (From the project root you can also run `npm run dev` / `npm run build`, which delegate to `frontend/`.)
+
+The compiled contract's ZK assets are copied into `frontend/public/managed/` automatically before `dev`/`build` (see `frontend/scripts/copy-contract-assets.mjs`), so make sure you've run `npm run compile` first.
+
+### Switch from local devnet to Preprod
+
+Once a Preprod contract address is available, only the frontend env changes — **no code edits**:
+
+```env
+VITE_MIDNIGHT_NETWORK=preprod
+VITE_CONTRACT_ADDRESS=<preprod contract address>
+# Leave the endpoint overrides blank to use Lace's own Preprod URIs, or set:
+VITE_INDEXER_URI=https://indexer.preprod.midnight.network/api/v4/graphql
+VITE_INDEXER_WS_URI=wss://indexer.preprod.midnight.network/api/v4/graphql/ws
+# VITE_PROVER_URI= (leave blank to use the wallet's prover)
 ```
 
-That removes all containers, networks, and volumes. The next `npm run setup` starts from a clean slate.
+Point Lace at Preprod, reconnect, and the same UI now targets Preprod.
 
-## ⚠️ LOCAL DEVNET ONLY
+---
 
-The deploy script uses a well-known genesis seed (`0000…0001`) so the
-pre-minted NIGHT in the `dev` chain preset is immediately available. **Do
-not use this seed against Preprod, mainnet, or any environment that
-handles real value** — anyone running this devnet has full access to
-funds at this seed.
+## Contract overview
+
+Compact source: `contracts/event-checkin.compact`
+
+- **Constructor** `name` → sets public `eventName` via `disclose(name)`
+- **Circuit** `checkIn(inviteSecret)` → private opaque secret; increments public `checkInCount`
 
 ## Networks
 
-This DApp supports three networks:
+| Network | Use |
+| --- | --- |
+| `undeployed` | Local docker-compose devnet (default) |
+| `preview` | Public preview testnet |
+| `preprod` | Public preprod testnet |
 
-| Network | When to use | Default? |
-|---|---|---|
-| `undeployed` | Local devnet bundled in `docker-compose.yml`. Genesis seed is hardcoded; no funding needed. | yes |
-| `preview` | Public preview testnet. Faucet at `https://midnight-tmnight-preview.nethermind.dev`. |  |
-| `preprod` | Public preprod testnet. Faucet at `https://midnight-tmnight-preprod.nethermind.dev`. |  |
-
-The active network is **sticky**: whichever network you last interacted
-with stays active until you switch. Any command run with `--network <name>`
-also sets that network active for subsequent commands. The default on a
-fresh project is `undeployed` (local devnet).
-
-```sh
-npm run setup -- --network preview   # runs on preview AND makes it active
-npm run cli                          # still uses preview
-npm run check-balance                # still uses preview
+```bash
+npm run network undeployed
+npm run setup -- --network preview
+npm run setup -- --network preprod
 ```
 
-You can also switch without running anything else:
+Public networks need faucet funding (URLs printed by setup). Wallet seeds for preview/preprod live in `.midnight-state.json` (gitignored) — **back them up** if you fund them.
 
-```sh
-npm run network preview         # active network is now preview
-npm run network                 # prints current active network
-npm run network undeployed      # switch back to local devnet
+## Continuous Integration (Level 3)
+
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs on every push and pull request:
+
+1. Install Node 22 + dependencies.
+2. Install the Compact toolchain and select 0.31.1.
+3. `npm run compile` — compile the contract.
+4. `npm test` — run the test suite.
+5. Type-check the backend, then type-check & build the frontend.
+
+## Preprod Deployment Status
+
+The Compact contract compiles and deploys/executes end-to-end on the **local devnet** (compile → deploy → CLI check-in → read-back). Preprod deployment has been attempted with a **funded** wallet, but is currently blocked during **wallet synchronization**: endpoints are reachable, yet the Midnight wallet SDK does not finish sync and surfaces `Wallet.Sync` errors from the shielded/unshielded packages.
+
+| Item | Status |
+| --- | --- |
+| Compact compile (0.31.1) | ✅ Succeeds (`checkIn` circuit) |
+| Local (`undeployed`) deploy + CLI | ✅ Verified |
+| Tests + CI | ✅ Passing |
+| Frontend (Lace connect + `checkIn`) | ✅ Implemented, env-configurable |
+| Preprod wallet + faucet funding | ✅ Wallet funded (seed kept in `.midnight-state.json`) |
+| Preprod wallet sync / deploy | ⏳ Blocked — SDK `Wallet.Sync` hang |
+
+Mitigations already applied: a configurable sync timeout with clear logging (`src/wallet.ts`), and running from the native WSL filesystem. Retry when the network/SDK issue clears:
+
+```bash
+cd ~/midnight-projects/anonymous-event-checkin
+npm run setup -- --network preprod
 ```
 
-### How wallets work across networks
+After a successful Preprod deploy, record the address from `.midnight-state.json` → `deployments.preprod` here, and set `VITE_CONTRACT_ADDRESS` in the frontend.
 
-- `undeployed` uses a hardcoded genesis seed. Local devnet pre-funds it.
-- `preview` and `preprod` generate a fresh seed on first use and store it
-  in `.midnight-state.json` (gitignored). The seed survives switching
-  networks — switch back later and your funded wallet returns.
-- **Back up your seed** if you fund a public-network wallet you care
-  about. Open `.midnight-state.json` and copy the relevant
-  `wallets.<network>.seed` value to a safe place.
+> `.midnight-state.json` holds the funded Preprod seed. `npm run clean` does **not** delete it — remove it manually only if you intend to discard that wallet.
 
-### Funding a public-network wallet
+---
 
-On the first run with `--network preview` (or `preprod`):
+## Submission Checklist
 
-1. `setup` will print your wallet address and the faucet URL.
-2. Open the faucet URL, paste the address, request tNIGHT.
-3. `setup` polls the wallet balance every 10 s and continues automatically
-   once funds arrive.
-4. The default poll budget is 10 minutes. Override with
-   `MIDNIGHT_FAUCET_TIMEOUT_MS=1800000` (30 min) for unattended runs.
+### Level 1 — Contract & local deploy
+- [x] Compact contract compiles (0.31.1)
+- [x] Public ledger: `eventName`, `checkInCount`
+- [x] `checkIn` circuit takes a private `Opaque` invite secret
+- [x] `disclose()` used only for the intentionally public event name
+- [x] Local deploy works (`npm run setup`)
+- [x] CLI can call `checkIn` and read public state (`npm run cli`)
+- [x] Product idea documented
 
-If the faucet is slow or the script times out, your seed is preserved.
-Re-run `npm run setup -- --network preview` once the funds land.
+### Level 2 — Frontend & wallet
+- [x] Web UI (`frontend/`)
+- [x] Lace wallet connect / disconnect + status
+- [x] Network + contract address from environment variables
+- [x] Invite-secret input
+- [x] Anonymous check-in button calls `checkIn`
+- [x] Public state panel (`eventName`, `checkInCount`)
+- [x] Loading / success / error states
+- [x] Docs: run frontend locally + switch local → Preprod
 
-### Environment overrides
+### Level 3 — Tests, CI, polish
+- [x] ≥ 3 automated tests (`npm test` — 10 tests)
+- [x] GitHub Actions CI (compile + tests + typecheck + frontend build)
+- [x] Privacy Model section
+- [x] Product Proposal (category: Private Allowlist Access)
+- [x] This submission checklist
+- [x] Existing contract / deploy / CLI still work
+- [ ] Live Preprod contract address (blocked by wallet sync — see status)
 
-These env vars override the active network's config (no per-network
-suffix — they apply to whichever network is active for the run):
-
-| Variable | Effect |
-|---|---|
-| `MIDNIGHT_WALLET_SEED` | Use this seed instead of generating/persisting one. Useful for CI with a pre-funded wallet. |
-| `MIDNIGHT_INDEXER_URL` | Override the indexer GraphQL URL. |
-| `MIDNIGHT_INDEXER_WS_URL` | Override the indexer WS URL. |
-| `MIDNIGHT_NODE_URL` | Override the node RPC URL. |
-| `MIDNIGHT_FAUCET_URL` | Override the faucet URL printed during setup. |
-| `MIDNIGHT_PROOF_SERVER_URL` | Override the proof server URL — set to a public proof server (e.g. `https://lace-proof-pub.preview.midnight.network`) to skip running one locally. |
-| `MIDNIGHT_FAUCET_TIMEOUT_MS` | Faucet poll budget in milliseconds (default 600000 = 10 min). |
-
-By default all networks use the **local** proof server. Public proof
-servers exist (see the env override above) but the local default keeps
-your witness data on your machine and avoids depending on a remote
-service for the deploy hot path.
-
-### Switching back to local devnet
-
-```sh
-npm run network undeployed     # or: npm run setup -- --network undeployed
-```
-
-Your preview/preprod wallet seeds and deploy addresses stay in
-`.midnight-state.json`. Switch back later, and they're still there.
-
-### Wallet sync cache
-
-After each `deploy`, `cli`, or `check-balance` run, the scripts serialize the
-wallet's synced state to `.midnight-wallet-state/<network>/` (gitignored).
-The next run on the same network restores from that snapshot and only catches
-up to the latest block instead of replaying from genesis — meaningful on
-`preview` / `preprod` where a from-seed sync takes minutes.
-
-If the cache is stale or corrupt (e.g. after an SDK upgrade with an
-incompatible state format) the wallet falls back to a fresh from-seed sync
-with a one-line warning. `npm run clean` removes the cache along with other
-generated state.
+---
 
 ## Available scripts
 
-| Script                  | Description                                                    |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run setup`         | One-shot: start devnet, compile, deploy.                       |
-| `npm run compile`       | Compile the Compact contract.                                  |
-| `npm run deploy`        | Deploy the compiled contract (requires devnet up + compiled).  |
-| `npm run cli`           | Interactive CLI to call circuits on the deployed contract.     |
-| `npm run check-balance` | Print the genesis-seed wallet's NIGHT and DUST balances.       |
-| `npm run test:e2e`      | Smoke + read-back check against the deployed contract.         |
-| `npm run clean`         | Remove `contracts/managed/`, `.midnight-state.json`, and `.midnight-wallet-state/`. |
-| `npm run proof-server:start` / `:stop` | Compose lifecycle for just the proof-server service. |
+| Script | Description |
+| --- | --- |
+| `npm run compile` | Compile Compact → `contracts/managed/event-checkin/` |
+| `npm test` | Run the test suite in `tests/` |
+| `npm run typecheck` | Type-check the backend (non-blocking) |
+| `npm run setup` | Start proof stack (and local node if undeployed), compile, deploy |
+| `npm run deploy` | Deploy the compiled contract |
+| `npm run cli` | Check in / read public state |
+| `npm run check-balance` | NIGHT / DUST balances |
+| `npm run test:e2e` | Read-back smoke check |
+| `npm run clean` | Remove `contracts/managed/` (does **not** touch `.midnight-state.json`) |
+| `npm run frontend:install` | Install frontend dependencies |
+| `npm run dev` | Run the frontend dev server |
+| `npm run build` | Build the frontend |
 
 ## Project structure
 
 ```
 anonymous-event-checkin/
 ├── contracts/
-│   └── hello-world.compact     # Compact source
+│   └── event-checkin.compact     # Anonymous Event Check-in (Compact 0.31.1)
+├── src/                          # deploy, cli, wallet, network (Level 1)
+│   ├── setup.ts  deploy.ts  cli.ts
+│   ├── network.ts  wallet.ts  ...
 ├── scripts/
-│   └── e2e-check.ts            # smoke + read-back
-├── src/
-│   ├── network.ts              # network selection + state file management
-│   ├── wallet.ts               # wallet construction + sync-state cache
-│   ├── setup.ts                # orchestrator for `npm run setup`
-│   ├── deploy.ts               # deploy the contract
-│   ├── cli.ts                  # interact with deployed contract
-│   └── check-balance.ts        # NIGHT / DUST balance
-├── docker-compose.yml          # node + indexer + proof-server
-├── .midnight-state.json        # written by deploy (gitignored)
-├── .midnight-wallet-state/     # serialized sync state per network (gitignored)
+│   └── e2e-check.ts
+├── tests/                        # Level 3 tests (node:test)
+│   ├── network.test.ts
+│   └── contract.test.ts
+├── frontend/                     # Level 2 web app (Vite + React + Lace)
+│   ├── src/ (App, lace, contract, config, components/)
+│   ├── .env.example
+│   └── package.json
+├── .github/workflows/ci.yml      # Level 3 CI
+├── docker-compose.yml
 ├── package.json
-└── tsconfig.json
-```
-
-## Compact compiler version
-
-`.compact-version` at the create-mn-app repo root pinned the compiler
-version this project was scaffolded against. To upgrade your local
-compiler to that version:
-
-```bash
-compact update <version>
-compact use <version>
+└── README.md
 ```
