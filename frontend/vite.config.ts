@@ -22,6 +22,23 @@ export default defineConfig({
   resolve: {
     alias: {
       '@contract': path.resolve(__dirname, '..', 'contracts', 'managed', 'event-checkin'),
+      // `@midnight-ntwrk/compact-runtime` is hoisted to the repo-root
+      // `node_modules`, so when vite-plugin-node-polyfills rewrites its
+      // `Buffer`/`process` usage to these shims, Rollup cannot resolve the bare
+      // specifiers from that location during `vite build`. Pin them to the
+      // absolute shim paths inside the frontend workspace.
+      'vite-plugin-node-polyfills/shims/buffer': path.resolve(
+        __dirname,
+        'node_modules/vite-plugin-node-polyfills/shims/buffer/dist/index.js',
+      ),
+      'vite-plugin-node-polyfills/shims/global': path.resolve(
+        __dirname,
+        'node_modules/vite-plugin-node-polyfills/shims/global/dist/index.js',
+      ),
+      'vite-plugin-node-polyfills/shims/process': path.resolve(
+        __dirname,
+        'node_modules/vite-plugin-node-polyfills/shims/process/dist/index.js',
+      ),
     },
   },
   optimizeDeps: {
