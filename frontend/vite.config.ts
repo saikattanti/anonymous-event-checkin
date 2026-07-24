@@ -22,6 +22,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@contract': path.resolve(__dirname, '..', 'contracts', 'managed', 'event-checkin'),
+      // compact-runtime does `import inspect from 'object-inspect'`, but that
+      // package is CJS-only. Without this alias Vite serves the raw file and
+      // the browser throws "does not provide an export named 'default'".
+      'object-inspect': path.resolve(__dirname, 'src/shims/object-inspect.js'),
       // `@midnight-ntwrk/compact-runtime` is hoisted to the repo-root
       // `node_modules`, so when vite-plugin-node-polyfills rewrites its
       // `Buffer`/`process` usage to these shims, Rollup cannot resolve the bare

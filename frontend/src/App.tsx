@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadConfig, networkLabel } from './config';
-import { connectLace, isLaceInstalled, type ConnectedWallet } from './lace';
-import { getPublicState, submitCheckIn, type PublicState } from './contract';
+import { connectLace, waitForLace, type ConnectedWallet } from './lace';
 import { WalletPanel } from './components/WalletPanel';
 import { CheckInPanel, type CheckInStatus } from './components/CheckInPanel';
 import { PublicStatePanel } from './components/PublicStatePanel';
 
+type PublicState = {
+  eventName: string;
+  checkInCount: bigint;
+};
+
+// Lazy-load Midnight SDK / WASM only when a contract call is needed.
+// A static import crashes the whole page on boot if WASM fails to init.
+async function contractApi() {
+  return import('./contract');
+}
+
 export default function App() {
   const config = useMemo(() => loadConfig(), []);
-  const laceInstalled = useMemo(() => isLaceInstalled(), []);
+  const [laceInstalled, setLaceInstalled] = useState(false);
 
   const [wallet, setWallet] = useState<ConnectedWallet | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -19,6 +29,17 @@ export default function App() {
   const [stateError, setStateError] = useState<string | null>(null);
 
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus>({ kind: 'idle' });
+
+  // Lace Midnight injects window.midnight.mnLace asynchronously after load.
+  useEffect(() => {
+    let cancelled = false;
+    void waitForLace().then((found) => {
+      if (!cancelled) setLaceInstalled(found);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshPublicState = useCallback(async () => {
     if (!config.contractAddress) {
@@ -35,6 +56,7 @@ export default function App() {
     setStateLoading(true);
     setStateError(null);
     try {
+      const { getPublicState } = await contractApi();
       const s = await getPublicState(config, indexer, indexerWs);
       setPublicState(s);
     } catch (err) {
@@ -56,14 +78,14 @@ export default function App() {
     setConnecting(true);
     setWalletError(null);
     try {
-      const w = await connectLace();
+      const w = await connectLace(config.network);
       setWallet(w);
     } catch (err) {
       setWalletError(err instanceof Error ? err.message : String(err));
     } finally {
       setConnecting(false);
     }
-  }, []);
+  }, [config.network]);
 
   const handleDisconnect = useCallback(() => {
     setWallet(null);
@@ -75,6 +97,7 @@ export default function App() {
       if (!wallet) return;
       setCheckInStatus({ kind: 'submitting' });
       try {
+        const { submitCheckIn } = await contractApi();
         const { txId, blockHeight } = await submitCheckIn(config, wallet, inviteSecret);
         setCheckInStatus({ kind: 'success', txId, blockHeight });
         void refreshPublicState();

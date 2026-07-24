@@ -1,4 +1,5 @@
 import type { ConnectedWallet } from '../lace';
+import { LACE_STORE_URL } from '../lace';
 
 interface Props {
   wallet: ConnectedWallet | null;
@@ -34,7 +35,11 @@ export function WalletPanel({
 
       {!laceInstalled && (
         <p className="hint hint--warn">
-          Lace (Midnight) wallet not detected. Install the browser extension, then reload.
+          Midnight wallet not detected. Install the main{' '}
+          <a href={LACE_STORE_URL} target="_blank" rel="noreferrer">
+            Lace
+          </a>{' '}
+          extension (Midnight Preview is deprecated), open Midnight in Lace, then reload.
         </p>
       )}
 
@@ -46,6 +51,12 @@ export function WalletPanel({
               {shortAddress(wallet!.state.address)}
             </code>
           </div>
+          {wallet!.walletName && (
+            <div className="kv">
+              <span className="kv__key">Wallet</span>
+              <span className="kv__val">{wallet!.walletName}</span>
+            </div>
+          )}
           <button className="btn btn--ghost" onClick={onDisconnect}>
             Disconnect
           </button>
