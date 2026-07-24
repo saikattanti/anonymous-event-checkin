@@ -8,6 +8,10 @@ Built with Compact **0.31.1**. Contract source lives at `contracts/event-checkin
 - **Level 2** — Web frontend with Lace wallet connect + `checkIn` circuit call ✅
 - **Level 3** — Tests, CI, privacy model, product proposal, submission checklist ✅
 
+### Screenshots
+![Landing Page](frontend/public/landing.png)
+![App Dashboard](frontend/public/app.png)
+
 ---
 
 ## Product Proposal
