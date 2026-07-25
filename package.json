@@ -20,7 +20,7 @@
     "test:e2e": "tsx scripts/e2e-check.ts",
     "frontend:install": "npm --prefix frontend install",
     "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend install && npm --prefix frontend run build"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",

@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../",
+  "sources": ["contracts/event-checkin.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsBA;;;;;;;;;;MAQA,AAAA,OAMC;;;;;cANsB,cAA8B;;;;;;;;;;;yCAA9B,cAA8B;;;;;;;;;yCAA9B,cAA8B;;;OAMpD;;;;GAZA;EAFD;;;;;UAAY,MAAsB;;;;;;;;;;;;;;;;;;;;;;;IAJlC;;;;;;;;;yEAA0C;IAC1C;;;;;;;;;yEAAoC;IAIlC;;;;;;;2HAAqB,MAAI;;yEAAhB;;;;;;;GACV;EAMD,AAAA,UAMC,4BANsB,cAA8B;UAG7C,gBAA+C,GAAZ,cAAY;UAErD,KAAY;IAAZ;;;;;;;;;;6FAAA,KAAY;;;;wEAAA;;GACb;;;;;;;;;;;;;;;;IAlBD;qCAAA;;;;;;;;;;;0GAA0C;KAAA;IAC1C;qCAAA;;;;;;;;;;;0GAAoC;KAAA;;;;;;;;;;"
+}

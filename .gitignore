@@ -15,8 +15,10 @@ build/
 .env.test.local
 .env.production.local
 
-# Contract artifacts
-contracts/managed/
+# Contract artifacts (keep compiled event-checkin for Vercel / CI frontend builds)
+contracts/managed/*
+!contracts/managed/event-checkin/
+!contracts/managed/event-checkin/**
 
 # Deployment info
 deployment.json
