@@ -4,9 +4,23 @@ A **Midnight** DApp where attendees prove they hold a valid invite/check-in secr
 
 Built with Compact **0.31.1**. Contract source lives at `contracts/event-checkin.compact`.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=flat-square&logo=vercel)](https://anonymous-event-checkin.vercel.app/)
+[![Demo Video](https://img.shields.io/badge/Demo_Video-YouTube-FF0000?style=flat-square&logo=youtube)](https://youtu.be/gnPuRBhZtxc)
+[![Compact](https://img.shields.io/badge/Compact-0.31.1-06b6d4?style=flat-square)](https://docs.midnight.network)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-10b981?style=flat-square)](https://nodejs.org)
+
 - **Level 1** — Compact contract + local deploy + CLI ✅
 - **Level 2** — Web frontend with Lace wallet connect + `checkIn` circuit call ✅
 - **Level 3** — Tests, CI, privacy model, product proposal, submission checklist ✅
+
+## Links
+
+| Resource | URL |
+| --- | --- |
+| **Live demo** | [https://anonymous-event-checkin.vercel.app/](https://anonymous-event-checkin.vercel.app/) |
+| **Demo video** | [https://youtu.be/gnPuRBhZtxc](https://youtu.be/gnPuRBhZtxc) |
+| **GitHub** | [saikattanti/anonymous-event-checkin](https://github.com/saikattanti/anonymous-event-checkin) |
+| **CI** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 
 ### Screenshots
 ![Landing Page](frontend/public/landing.png)
@@ -145,14 +159,27 @@ Local deploy uses the well-known genesis seed (`0000…0001`). **Do not** use it
 
 ## Frontend (Level 2)
 
-A Vite + React + TypeScript app in [`frontend/`](./frontend) that connects the **Lace (Midnight)** wallet and calls the `checkIn` circuit.
+Live demo: **[anonymous-event-checkin.vercel.app](https://anonymous-event-checkin.vercel.app/)** · Walkthrough: **[YouTube](https://youtu.be/gnPuRBhZtxc)**
+
+A Vite + React + TypeScript console in [`frontend/`](./frontend) that connects **Lace (Midnight)** and calls the `checkIn` circuit.
 
 Features:
-- Connect / disconnect Lace, with live connection status and address display
-- Network + contract address loaded from environment variables (no hardcoding)
-- Invite-secret input (kept private) and an **Anonymous check-in** button that calls `checkIn`
-- Public state panel showing `eventName` and `checkInCount`
-- Loading, success (tx id + block), and error states
+- Lace auto-connect on load (disconnect disables auto-connect until you reconnect)
+- Top-nav console: Overview · Door check-in · Activity · Config
+- Network + contract address from env, with in-browser contract override in **Config**
+- Invite-secret input (private witness) → anonymous `checkIn`
+- Public ledger panel: `eventName` + `checkInCount`
+- Local activity log; loading / success (tx + block) / error states
+
+### App routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Landing |
+| `/dashboard` | Event desk overview |
+| `/check-in` | Private invite → `checkIn` + public ledger |
+| `/logs` | Local activity log |
+| `/settings` | Contract address, Lace, env |
 
 ### Run the frontend locally
 
@@ -190,7 +217,9 @@ Features:
 
    (From the project root you can also run `npm run dev` / `npm run build`, which delegate to `frontend/`.)
 
-The compiled contract's ZK assets are copied into `frontend/public/managed/` automatically before `dev`/`build` (see `frontend/scripts/copy-contract-assets.mjs`), so make sure you've run `npm run compile` first.
+Open [http://localhost:5173](http://localhost:5173) or the [live demo](https://anonymous-event-checkin.vercel.app/).
+
+The compiled contract's ZK assets are copied into `frontend/public/managed/` automatically before `dev`/`build` (see `frontend/scripts/copy-contract-assets.mjs`). Managed artifacts under `contracts/managed/event-checkin/` are committed so Vercel builds without a Compact install.
 
 ### Switch from local devnet to Preprod
 
@@ -251,20 +280,16 @@ The Compact contract compiles and deploys/executes end-to-end on the **local dev
 | Compact compile (0.31.1) | ✅ Succeeds (`checkIn` circuit) |
 | Local (`undeployed`) deploy + CLI | ✅ Verified |
 | Tests + CI | ✅ Passing |
-| Frontend (Lace connect + `checkIn`) | ✅ Implemented, env-configurable |
+| Frontend (Lace connect + `checkIn`) | ✅ Live on Vercel |
+| Demo video | ✅ [YouTube](https://youtu.be/gnPuRBhZtxc) |
 | Preprod wallet + faucet funding | ✅ Wallet funded (seed kept in `.midnight-state.json`) |
-| Preprod wallet sync / deploy | ⏳ Blocked — SDK `Wallet.Sync` hang |
+| Preprod wallet sync / deploy | ⏳ Blocked / waived — SDK `Wallet.Sync` hang |
 
-Mitigations already applied: a configurable sync timeout with clear logging (`src/wallet.ts`), and running from the native WSL filesystem. Retry when the network/SDK issue clears:
+### Mentor guidance (Preprod)
 
-```bash
-cd ~/midnight-projects/anonymous-event-checkin
-npm run setup -- --network preprod
-```
+> If you're unable to deploy, just build the full-stack dApp and submit it. Skip the deployment part for now.
 
-After a successful Preprod deploy, record the address from `.midnight-state.json` → `deployments.preprod` here, and set `VITE_CONTRACT_ADDRESS` in the frontend.
-
-> `.midnight-state.json` holds the funded Preprod seed. `npm run clean` does **not** delete it — remove it manually only if you intend to discard that wallet.
+Submission includes local undeployed deploy, live full-stack UI, tests, CI, and demo video.
 
 ---
 
@@ -280,14 +305,16 @@ After a successful Preprod deploy, record the address from `.midnight-state.json
 - [x] Product idea documented
 
 ### Level 2 — Frontend & wallet
-- [x] Web UI (`frontend/`)
-- [x] Lace wallet connect / disconnect + status
-- [x] Network + contract address from environment variables
+- [x] Web UI (`frontend/`) — venue console (Overview / Door / Activity / Config)
+- [x] Lace wallet auto-connect / disconnect + status
+- [x] Network + contract address from environment variables (+ Config override)
 - [x] Invite-secret input
 - [x] Anonymous check-in button calls `checkIn`
 - [x] Public state panel (`eventName`, `checkInCount`)
 - [x] Loading / success / error states
 - [x] Docs: run frontend locally + switch local → Preprod
+- [x] Live demo on Vercel
+- [x] Demo video on YouTube
 
 ### Level 3 — Tests, CI, polish
 - [x] ≥ 3 automated tests (`npm test` — 10 tests)
@@ -296,7 +323,7 @@ After a successful Preprod deploy, record the address from `.midnight-state.json
 - [x] Product Proposal (category: Private Allowlist Access)
 - [x] This submission checklist
 - [x] Existing contract / deploy / CLI still work
-- [ ] Live Preprod contract address (blocked by wallet sync — see status)
+- [x] Preprod deploy blocked/waived (wallet sync) — full-stack submitted first (mentor guidance)
 
 ---
 
@@ -332,9 +359,10 @@ anonymous-event-checkin/
 │   ├── network.test.ts
 │   └── contract.test.ts
 ├── frontend/                     # Level 2 web app (Vite + React + Lace)
-│   ├── src/ (App, lace, contract, config, components/)
+│   ├── src/ (pages, wallet-context, lace, contract, AppShell)
 │   ├── .env.example
 │   └── package.json
+├── vercel.json                   # Vercel: install root + frontend → frontend/dist
 ├── .github/workflows/ci.yml      # Level 3 CI
 ├── docker-compose.yml
 ├── package.json
