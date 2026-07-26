@@ -1,7 +1,7 @@
 {
   "framework": "vite",
-  "installCommand": "npm install && npm --prefix frontend install",
+  "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
+  "outputDirectory": "checkin-ui/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

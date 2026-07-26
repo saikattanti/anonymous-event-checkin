@@ -1,9 +1,9 @@
 {
-  "name": "anonymous-event-checkin-frontend",
-  "version": "1.0.0",
+  "name": "@midnight-ntwrk/checkin-ui",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Frontend for the Anonymous Event Check-in Midnight DApp (Lace wallet connect + checkIn circuit)",
+  "description": "UI for the Anonymous Event Check-in Midnight DApp (Lace wallet connect + checkIn circuit)",
   "scripts": {
     "predev": "node scripts/copy-contract-assets.mjs",
     "dev": "vite",

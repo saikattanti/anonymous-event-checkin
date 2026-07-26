@@ -6,7 +6,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const src = path.resolve(__dirname, '..', '..', 'contracts', 'managed', 'event-checkin');
+const src = path.resolve(__dirname, '..', '..', 'contract', 'src', 'managed', 'event-checkin');
 const dest = path.resolve(__dirname, '..', 'public', 'managed', 'event-checkin');
 
 if (!fs.existsSync(src)) {

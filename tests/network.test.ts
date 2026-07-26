@@ -12,7 +12,7 @@ import {
   getDeployment,
   setActiveNetwork,
   NETWORK_IDS,
-} from '../src/network';
+} from '../checkin-cli/src/network';
 
 function tmpCwd(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'aec-test-'));

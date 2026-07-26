@@ -14,8 +14,8 @@ import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
-import { resolveNetwork, getOrCreateSeed, getDeployment } from '../src/network';
-import { createWallet, persistWalletState } from '../src/wallet';
+import { resolveNetwork, getOrCreateSeed, getDeployment } from '../checkin-cli/src/network';
+import { createWallet, persistWalletState } from '../checkin-cli/src/wallet';
 import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-js';
 
 // @ts-expect-error wallet sync requires WebSocket
@@ -51,7 +51,14 @@ async function main() {
 
   // 2. Build wallet and providers
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'event-checkin');
+  const zkConfigPath = path.resolve(
+    __dirname,
+    '..',
+    'contract',
+    'src',
+    'managed',
+    'event-checkin',
+  );
   const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
   if (!fs.existsSync(contractPath)) fail('Compiled contract missing — run `npm run compile`.');
   const CheckinContract = await import(pathToFileURL(contractPath).href);

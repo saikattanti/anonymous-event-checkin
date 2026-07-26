@@ -20,7 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@contract': path.resolve(__dirname, '..', 'contracts', 'managed', 'event-checkin'),
+      '@contract': path.resolve(__dirname, '..', 'contract', 'src', 'managed', 'event-checkin'),
       'object-inspect': path.resolve(__dirname, 'src/shims/object-inspect.js'),
       'vite-plugin-node-polyfills/shims/buffer': path.resolve(
         __dirname,

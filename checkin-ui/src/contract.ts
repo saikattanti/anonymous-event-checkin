@@ -15,7 +15,7 @@ import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-conf
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
-// Generated from `contracts/event-checkin.compact` by the Compact compiler.
+// Generated from `contract/src/event-checkin.compact` by the Compact compiler.
 // Aliased in vite.config.ts. `Contract` is the contract class; `ledger`
 // decodes raw on-chain state into { eventName, checkInCount }.
 // @ts-expect-error - generated JS module, types resolved at build time

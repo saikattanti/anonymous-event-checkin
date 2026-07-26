@@ -8,13 +8,14 @@ import { fileURLToPath } from 'node:url';
 // public ledger exposes only eventName + checkInCount, the private invite
 // secret is never a ledger field, and no witness leaks attendee data.
 //
-// They run against contracts/managed/event-checkin (produced by `npm run compile`).
+// They run against contract/src/managed/event-checkin (produced by `npm run compile`).
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const infoPath = path.resolve(
   __dirname,
   '..',
-  'contracts',
+  'contract',
+  'src',
   'managed',
   'event-checkin',
   'compiler',

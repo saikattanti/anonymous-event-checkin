@@ -2,7 +2,7 @@
 
 A **Midnight** DApp where attendees prove they hold a valid invite/check-in secret **without revealing their identity or the secret**. The public ledger shows only the **event name** and a running **anonymous check-in count**.
 
-Built with Compact **0.31.1**. Contract source lives at `contracts/event-checkin.compact`.
+Built with Compact **0.31.1**. Contract source lives at `contract/src/event-checkin.compact`.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=flat-square&logo=vercel)](https://anonymous-event-checkin.vercel.app/)
 [![Demo Video](https://img.shields.io/badge/Demo_Video-YouTube-FF0000?style=flat-square&logo=youtube)](https://youtu.be/gnPuRBhZtxc)
@@ -23,8 +23,8 @@ Built with Compact **0.31.1**. Contract source lives at `contracts/event-checkin
 | **CI** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 
 ### Screenshots
-![Landing Page](frontend/public/landing.png)
-![App Dashboard](frontend/public/app.png)
+![Landing Page](checkin-ui/public/landing.png)
+![App Dashboard](checkin-ui/public/app.png)
 
 ---
 
@@ -51,7 +51,7 @@ What an on-chain observer (indexer, explorer, validator) **can** and **cannot** 
 | That a check-in transaction occurred | Any link between a check-in and a specific person |
 | The ZK proof is valid | The witness data used to build the proof |
 
-How it is enforced in `contracts/event-checkin.compact`:
+How it is enforced in `contract/src/event-checkin.compact`:
 
 - `eventName` is written with `disclose(name)` — it is **intentionally** public.
 - `inviteSecret` is an `Opaque<"string">` **circuit input** used only inside the `checkIn` proof. It is **never** passed to `disclose()` and is **never** stored in a ledger field, so it cannot appear on-chain.
@@ -91,7 +91,7 @@ compact update 0.31.1
 
 ```bash
 npm install            # backend (contract, deploy, CLI, tests)
-npm run frontend:install   # frontend (Vite + React)
+npm install                 # all workspaces (contract, api, cli, ui)
 ```
 
 ## Compile
@@ -100,7 +100,7 @@ npm run frontend:install   # frontend (Vite + React)
 npm run compile
 ```
 
-Runs `compact compile contracts/event-checkin.compact contracts/managed/event-checkin`. Output lands in `contracts/managed/event-checkin/` (JS bindings, ZKIR, keys, circuit metadata).
+Runs `compact compile contract/src/event-checkin.compact contract/src/managed/event-checkin`. Output lands in `contract/src/managed/event-checkin/` (JS bindings, ZKIR, keys, circuit metadata).
 
 ## Test
 
@@ -157,11 +157,11 @@ Local deploy uses the well-known genesis seed (`0000…0001`). **Do not** use it
 
 ---
 
-## Frontend (Level 2)
+## UI (Level 2)
 
 Live demo: **[anonymous-event-checkin.vercel.app](https://anonymous-event-checkin.vercel.app/)** · Walkthrough: **[YouTube](https://youtu.be/gnPuRBhZtxc)**
 
-A Vite + React + TypeScript console in [`frontend/`](./frontend) that connects **Lace (Midnight)** and calls the `checkIn` circuit.
+A Vite + React + TypeScript console in [`checkin-ui/`](./checkin-ui) that connects **Lace (Midnight)** and calls the `checkIn` circuit.
 
 Features:
 - Lace auto-connect on load (disconnect disables auto-connect until you reconnect)
@@ -181,7 +181,7 @@ Features:
 | `/logs` | Local activity log |
 | `/settings` | Contract address, Lace, env |
 
-### Run the frontend locally
+### Run the UI locally
 
 1. Deploy the contract (local devnet) and note the address:
 
@@ -190,10 +190,10 @@ Features:
    # address printed, and saved to .midnight-state.json -> deployments.undeployed
    ```
 
-2. Configure the frontend:
+2. Configure the UI:
 
    ```bash
-   cd frontend
+   cd checkin-ui
    cp .env.example .env.local
    ```
 
@@ -215,15 +215,15 @@ Features:
    npm run dev       # http://localhost:5173
    ```
 
-   (From the project root you can also run `npm run dev` / `npm run build`, which delegate to `frontend/`.)
+   (From the project root you can also run `npm run dev` / `npm run build`, which delegate to `checkin-ui/`.)
 
 Open [http://localhost:5173](http://localhost:5173) or the [live demo](https://anonymous-event-checkin.vercel.app/).
 
-The compiled contract's ZK assets are copied into `frontend/public/managed/` automatically before `dev`/`build` (see `frontend/scripts/copy-contract-assets.mjs`). Managed artifacts under `contracts/managed/event-checkin/` are committed so Vercel builds without a Compact install.
+The compiled contract's ZK assets are copied into `checkin-ui/public/managed/` automatically before `dev`/`build` (see `checkin-ui/scripts/copy-contract-assets.mjs`). Managed artifacts under `contract/src/managed/event-checkin/` are committed so Vercel builds without a Compact install.
 
 ### Switch from local devnet to Preprod
 
-Once a Preprod contract address is available, only the frontend env changes — **no code edits**:
+Once a Preprod contract address is available, only the UI env changes — **no code edits**:
 
 ```env
 VITE_MIDNIGHT_NETWORK=preprod
@@ -240,7 +240,7 @@ Point Lace at Preprod, reconnect, and the same UI now targets Preprod.
 
 ## Contract overview
 
-Compact source: `contracts/event-checkin.compact`
+Compact source: `contract/src/event-checkin.compact`
 
 - **Constructor** `name` → sets public `eventName` via `disclose(name)`
 - **Circuit** `checkIn(inviteSecret)` → private opaque secret; increments public `checkInCount`
@@ -269,7 +269,7 @@ Public networks need faucet funding (URLs printed by setup). Wallet seeds for pr
 2. Install the Compact toolchain and select 0.31.1.
 3. `npm run compile` — compile the contract.
 4. `npm test` — run the test suite.
-5. Type-check the backend, then type-check & build the frontend.
+5. Type-check the backend, then type-check & build the UI.
 
 ## Preprod Deployment Status
 
@@ -305,20 +305,20 @@ Submission includes local undeployed deploy, live full-stack UI, tests, CI, and 
 - [x] Product idea documented
 
 ### Level 2 — Frontend & wallet
-- [x] Web UI (`frontend/`) — venue console (Overview / Door / Activity / Config)
+- [x] Web UI (`checkin-ui/`) — venue console (Overview / Door / Activity / Config)
 - [x] Lace wallet auto-connect / disconnect + status
 - [x] Network + contract address from environment variables (+ Config override)
 - [x] Invite-secret input
 - [x] Anonymous check-in button calls `checkIn`
 - [x] Public state panel (`eventName`, `checkInCount`)
 - [x] Loading / success / error states
-- [x] Docs: run frontend locally + switch local → Preprod
+- [x] Docs: run UI locally + switch local → Preprod
 - [x] Live demo on Vercel
 - [x] Demo video on YouTube
 
 ### Level 3 — Tests, CI, polish
 - [x] ≥ 3 automated tests (`npm test` — 10 tests)
-- [x] GitHub Actions CI (compile + tests + typecheck + frontend build)
+- [x] GitHub Actions CI (compile + tests + typecheck + UI build)
 - [x] Privacy Model section
 - [x] Product Proposal (category: Private Allowlist Access)
 - [x] This submission checklist
@@ -331,7 +331,7 @@ Submission includes local undeployed deploy, live full-stack UI, tests, CI, and 
 
 | Script | Description |
 | --- | --- |
-| `npm run compile` | Compile Compact → `contracts/managed/event-checkin/` |
+| `npm run compile` | Compile Compact → `contract/src/managed/event-checkin/` |
 | `npm test` | Run the test suite in `tests/` |
 | `npm run typecheck` | Type-check the backend (non-blocking) |
 | `npm run setup` | Start proof stack (and local node if undeployed), compile, deploy |
@@ -339,32 +339,31 @@ Submission includes local undeployed deploy, live full-stack UI, tests, CI, and 
 | `npm run cli` | Check in / read public state |
 | `npm run check-balance` | NIGHT / DUST balances |
 | `npm run test:e2e` | Read-back smoke check |
-| `npm run clean` | Remove `contracts/managed/` (does **not** touch `.midnight-state.json`) |
-| `npm run frontend:install` | Install frontend dependencies |
-| `npm run dev` | Run the frontend dev server |
-| `npm run build` | Build the frontend |
+| `npm run clean` | Remove `contract/src/managed/` (does **not** touch `.midnight-state.json`) |
+| `npm install` | Install all workspace dependencies |
+| `npm run dev` | Run the UI dev server |
+| `npm run build` | Build the UI |
 
 ## Project structure
 
 ```
 anonymous-event-checkin/
-├── contracts/
-│   └── event-checkin.compact     # Anonymous Event Check-in (Compact 0.31.1)
-├── src/                          # deploy, cli, wallet, network (Level 1)
-│   ├── setup.ts  deploy.ts  cli.ts
-│   ├── network.ts  wallet.ts  ...
+├── contract/                     # Compact + managed ZK artifacts
+│   └── src/
+│       ├── event-checkin.compact
+│       ├── witnesses.ts
+│       ├── index.ts
+│       └── managed/event-checkin/
+├── api/                          # Shared types/utils for CLI + UI
+├── checkin-cli/                  # Deploy, CLI, wallet, network
+│   └── src/
+├── checkin-ui/                   # Vite + React venue console
+│   └── src/
+├── tests/
 ├── scripts/
-│   └── e2e-check.ts
-├── tests/                        # Level 3 tests (node:test)
-│   ├── network.test.ts
-│   └── contract.test.ts
-├── frontend/                     # Level 2 web app (Vite + React + Lace)
-│   ├── src/ (pages, wallet-context, lace, contract, AppShell)
-│   ├── .env.example
-│   └── package.json
-├── vercel.json                   # Vercel: install root + frontend → frontend/dist
-├── .github/workflows/ci.yml      # Level 3 CI
+├── .github/workflows/ci.yml
 ├── docker-compose.yml
-├── package.json
+├── vercel.json                   # Vercel → checkin-ui/dist
+├── package.json                  # npm workspaces root
 └── README.md
-```
+``

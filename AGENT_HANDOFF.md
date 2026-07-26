@@ -74,7 +74,7 @@ The repository has meaningful commits, no Cursor co-author trailers (stripped), 
 **Public ledger:** `eventName`, `checkInCount`  
 **Private witness:** `inviteSecret` (`Opaque<"string">`) — never `disclose()`’d, never stored on ledger.
 
-Contract file: `contracts/event-checkin.compact` (Compact **0.31.1**).
+Contract file: `contract/src/event-checkin.compact` (Compact **0.31.1**).
 
 ```compact
 export ledger eventName: Opaque<"string">;
@@ -98,7 +98,7 @@ export circuit checkIn(inviteSecret: Opaque<"string">): [] {
 
 ```
 anonymous-event-checkin/
-├── contracts/
+├── contract/
 │   ├── event-checkin.compact          # source of truth
 │   └── managed/event-checkin/         # gitignored compile output
 ├── src/                               # Node backend: deploy, CLI, wallet, network
@@ -112,7 +112,7 @@ anonymous-event-checkin/
 ├── tests/
 │   ├── contract.test.ts               # privacy invariants from contract-info.json
 │   └── network.test.ts                # network/seed/deployment persistence
-├── frontend/                          # Vite + React + TS (Level 2)
+├── checkin-ui/                          # Vite + React + TS (Level 2)
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── main.tsx                   # BootErrorBoundary; styles imported first
@@ -136,7 +136,7 @@ anonymous-event-checkin/
 └── .midnight-state.json               # gitignored — FUNDED SEEDS. DO NOT DELETE
 ```
 
-**Gitignore important:** `contracts/managed/`, `.midnight-state.json`, `node_modules/`, `frontend/dist/`, `midnight-level-db/`.
+**Gitignore important:** `contract/src/managed/`, `.midnight-state.json`, `node_modules/`, `checkin-ui/dist/`, `midnight-level-db/`.
 
 ---
 
@@ -168,15 +168,15 @@ npm run cli
 
 ### Frontend
 ```bash
-npm run frontend:install
-# copy frontend/.env.example → frontend/.env.local
+npm install
+# copy checkin-ui/.env.example → checkin-ui/.env.local
 # set VITE_CONTRACT_ADDRESS after local deploy
 
 npm run dev          # http://localhost:5173/
 npm run build        # production build (must pass)
 ```
 
-### Example `frontend/.env.local`
+### Example `checkin-ui/.env.local`
 ```env
 VITE_MIDNIGHT_NETWORK=undeployed
 VITE_CONTRACT_ADDRESS=                  # paste from .midnight-state.json after deploy
@@ -193,7 +193,7 @@ File: `.github/workflows/ci.yml`
 
 **Single job** (important): compile → test → backend typecheck → frontend install → frontend typecheck → **frontend build**.
 
-Why single job: `contracts/managed/` is gitignored and `@midnight-ntwrk/*` are hoisted to root `node_modules`. A separate frontend-only job would fail.
+Why single job: `contract/src/managed/` is gitignored and `@midnight-ntwrk/*` are hoisted to root `node_modules`. A separate frontend-only job would fail.
 
 ---
 
@@ -208,7 +208,7 @@ Why single job: `contracts/managed/` is gitignored and `@midnight-ntwrk/*` are h
 SyntaxError: The requested module '.../object-inspect/index.js' does not provide an export named 'default'
 ```
 from `@midnight-ntwrk/compact-runtime/dist/error.js` (`import inspect from 'object-inspect'`).  
-**Fix:** ESM shim `frontend/src/shims/object-inspect.js` + Vite alias in `vite.config.ts`.
+**Fix:** ESM shim `checkin-ui/src/shims/object-inspect.js` + Vite alias in `vite.config.ts`.
 
 **Cause C:** Production `vite build` failed resolving `vite-plugin-node-polyfills/shims/buffer` from hoisted root packages.  
 **Fix:** Absolute path aliases for buffer/global/process shims in `vite.config.ts`.
@@ -224,7 +224,7 @@ https://chromewebstore.google.com/detail/lace/gafhhkghbfjjkeiendhlofajokpaflmk
 Object.values(window.midnight ?? {})
 ```
 
-`frontend/src/lace.ts` now:
+`checkin-ui/src/lace.ts` now:
 - Lists all injected wallets
 - Prefers Lace by name/rdns
 - Supports **new** API: `connect(networkId)` + `getConfiguration()` + `getShieldedAddresses()`
@@ -258,9 +258,9 @@ Author used previously: `SAIKAT TANTI <saikattanti2005@gmail.com>`
 | `App.tsx` | Wires panels; lazy-loads contract module |
 | Panels | Wallet / Check-in / Public state UI |
 
-Alias `@contract` → `../contracts/managed/event-checkin`.
+Alias `@contract` → `../contract/src/managed/event-checkin`.
 
-`predev` / `prebuild` copies managed assets to `frontend/public/managed/event-checkin` for ZK config fetch.
+`predev` / `prebuild` copies managed assets to `checkin-ui/public/managed/event-checkin` for ZK config fetch.
 
 ---
 
@@ -319,7 +319,7 @@ npm test
 
 1. `git status` / `git log -5 --oneline` — see what’s unpushed.
 2. Confirm frontend boots: `npm run dev` → dark UI (not white screen).
-3. Confirm `npm test` and `npm --prefix frontend run build` pass in WSL.
+3. Confirm `npm test` and `npm run -w @midnight-ntwrk/checkin-ui run build` pass in WSL.
 4. If user wants Lace connect: ensure **main Lace** + Midnight enabled; reload; Connect.
 5. For local E2E: `npm run setup` → put address in `.env.local` → CLI check-in → frontend refresh.
 6. Do **not** restart long Preprod sync loops unless asked.

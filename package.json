@@ -2,25 +2,33 @@
   "name": "anonymous-event-checkin",
   "version": "1.0.0",
   "type": "module",
-  "description": "Anonymous Event Check-in — Level 1 Midnight DApp (private invite proof, public attendance count)",
+  "description": "Anonymous Event Check-in — Midnight DApp (private invite proof, public attendance count)",
   "author": "",
   "license": "MIT",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "checkin-cli",
+      "checkin-ui",
+      "api",
+      "contract"
+    ]
+  },
   "scripts": {
-    "compile": "compact compile contracts/event-checkin.compact contracts/managed/event-checkin",
-    "typecheck": "npx tsc --noEmit || true",
+    "compile": "npm run compact --workspace=@midnight-ntwrk/checkin-contract",
+    "typecheck": "npm run typecheck --workspace=@midnight-ntwrk/checkin-cli || true",
     "test": "node --import tsx --test tests/*.test.ts",
-    "setup": "npx tsx src/setup.ts",
-    "deploy": "npx tsx src/deploy.ts",
-    "cli": "npx tsx src/cli.ts",
-    "check-balance": "npx tsx src/check-balance.ts",
-    "network": "npx tsx src/network.ts",
+    "setup": "npx tsx checkin-cli/src/setup.ts",
+    "deploy": "npx tsx checkin-cli/src/deploy.ts",
+    "cli": "npx tsx checkin-cli/src/cli.ts",
+    "check-balance": "npx tsx checkin-cli/src/check-balance.ts",
+    "network": "npx tsx checkin-cli/src/network.ts",
     "proof-server:start": "docker compose up -d",
     "proof-server:stop": "docker compose down",
-    "clean": "rm -rf contracts/managed",
+    "clean": "rm -rf contract/src/managed",
     "test:e2e": "tsx scripts/e2e-check.ts",
-    "frontend:install": "npm --prefix frontend install",
-    "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend install && npm --prefix frontend run build"
+    "dev": "npm run dev --workspace=@midnight-ntwrk/checkin-ui",
+    "build": "npm run build --workspace=@midnight-ntwrk/checkin-ui"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",
