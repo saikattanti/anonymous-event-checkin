@@ -22,18 +22,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@contract': path.resolve(__dirname, '..', 'contract', 'src', 'managed', 'event-checkin'),
       'object-inspect': path.resolve(__dirname, 'src/shims/object-inspect.js'),
-      'vite-plugin-node-polyfills/shims/buffer': path.resolve(
-        __dirname,
-        'node_modules/vite-plugin-node-polyfills/shims/buffer/dist/index.js',
-      ),
-      'vite-plugin-node-polyfills/shims/global': path.resolve(
-        __dirname,
-        'node_modules/vite-plugin-node-polyfills/shims/global/dist/index.js',
-      ),
-      'vite-plugin-node-polyfills/shims/process': path.resolve(
-        __dirname,
-        'node_modules/vite-plugin-node-polyfills/shims/process/dist/index.js',
-      ),
+
     },
   },
   optimizeDeps: {
