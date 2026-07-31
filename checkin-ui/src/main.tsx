@@ -1,8 +1,14 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-// Styles first so a later module crash still leaves a readable page.
+import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import './styles.css';
 import App from './App';
+
+const networkId =
+  import.meta.env.VITE_NETWORK_ID ||
+  import.meta.env.VITE_MIDNIGHT_NETWORK ||
+  (import.meta.env.PROD ? 'preprod' : 'undeployed');
+setNetworkId(networkId as never);
 
 class BootErrorBoundary extends Component<
   { children: ReactNode },

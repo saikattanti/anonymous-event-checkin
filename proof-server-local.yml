@@ -1,0 +1,7 @@
+services:
+  proof-server:
+    image: midnightntwrk/proof-server:latest
+    command: ['midnight-proof-server', '-v']
+    container_name: proof-server-checkin
+    ports:
+      - '6300:6300'

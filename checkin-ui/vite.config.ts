@@ -22,11 +22,20 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@contract': path.resolve(__dirname, '..', 'contract', 'src', 'managed', 'event-checkin'),
       'object-inspect': path.resolve(__dirname, 'src/shims/object-inspect.js'),
-
     },
+    dedupe: [
+      '@midnight-ntwrk/compact-runtime',
+      '@midnight-ntwrk/midnight-js-protocol',
+      '@midnight-ntwrk/midnight-js-contracts',
+    ],
   },
   optimizeDeps: {
-    exclude: ['@midnight-ntwrk/compact-runtime'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  build: {
+    target: 'esnext',
   },
   server: {
     port: 5173,

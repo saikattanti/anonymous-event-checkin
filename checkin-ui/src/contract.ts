@@ -1,50 +1,66 @@
-// Contract integration: read public ledger state and submit anonymous
-// check-ins through the connected Lace wallet.
-//
-// Read path  (getPublicState): indexer -> compiled `ledger()` decoder.
-// Write path (submitCheckIn):  midnight-js providers backed by the Lace
-//                              wallet -> deployed contract -> callTx.checkIn.
-//
-// The invite secret passed to checkIn is a *private witness*: it is used to
-// build the ZK proof but is never written to the public ledger.
+// Contract integration: read public ledger, deploy, and submit anonymous check-ins.
 
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
-import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
+import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-js';
+import { fromHex, toHex } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
+import { Transaction } from '@midnight-ntwrk/midnight-js-protocol/ledger';
+import type {
+  Binding,
+  FinalizedTransaction,
+  Proof,
+  SignatureEnabled,
+} from '@midnight-ntwrk/midnight-js-protocol/ledger';
 
-// Generated from `contract/src/event-checkin.compact` by the Compact compiler.
-// Aliased in vite.config.ts. `Contract` is the contract class; `ledger`
-// decodes raw on-chain state into { eventName, checkInCount }.
 // @ts-expect-error - generated JS module, types resolved at build time
 import { Contract, ledger } from '@contract/contract/index.js';
 
 import type { AppConfig } from './config';
 import type { ConnectedWallet } from './lace';
 
-// Must match the privateStateId used by deploy.ts / cli.ts so we reconnect to
-// the same (empty) private state. checkIn declares no witnesses.
 const PRIVATE_STATE_ID = 'eventCheckinPrivateState';
+const DEFAULT_EVENT_NAME = 'Anonymous Event Check-in';
 
 export interface PublicState {
   eventName: string;
   checkInCount: bigint;
 }
 
+function zkAssetBase() {
+  return `${window.location.origin}/managed/event-checkin`;
+}
+
+function compiledContract() {
+  return CompiledContract.make('event-checkin', Contract).pipe(
+    CompiledContract.withVacantWitnesses,
+    CompiledContract.withCompiledFileAssets(zkAssetBase()),
+  );
+}
+
+function resolveProverUri(prover: string): string {
+  if (
+    typeof window !== 'undefined' &&
+    import.meta.env.PROD &&
+    /proof-server\.(preprod|preview)\.midnight\.network/i.test(prover)
+  ) {
+    return `${window.location.origin}/proof-server`;
+  }
+  return prover;
+}
+
 function resolveUris(config: AppConfig, wallet: ConnectedWallet) {
+  const prover = config.proverUri ?? wallet.uris.proverServerUri;
   return {
     indexer: config.indexerUri ?? wallet.uris.indexerUri,
     indexerWs: config.indexerWsUri ?? wallet.uris.indexerWsUri,
-    prover: config.proverUri ?? wallet.uris.proverServerUri,
+    prover: resolveProverUri(prover),
   };
 }
 
-/**
- * Read the public ledger. Only needs the indexer + the compiled decoder — no
- * wallet, no proofs. Returns null if the contract has no state yet.
- */
 export async function getPublicState(
   config: AppConfig,
   indexerUri: string,
@@ -66,21 +82,84 @@ export async function getPublicState(
 }
 
 function buildWalletProvider(wallet: ConnectedWallet) {
-  // Bridges the Lace connector API to the midnight-js WalletProvider /
-  // MidnightProvider interfaces used by findDeployedContract.
   return {
     getCoinPublicKey: () => wallet.state.coinPublicKey,
     getEncryptionPublicKey: () => wallet.state.encryptionPublicKey ?? '',
-    balanceTx: (tx: unknown, newCoins: unknown[] = []) =>
-      wallet.api.balanceAndProveTransaction(tx, newCoins),
-    submitTx: (tx: unknown) => wallet.api.submitTransaction(tx),
+    balanceTx: async (tx: unknown, newCoins: unknown[] = []) => {
+      if (typeof wallet.api.balanceUnsealedTransaction === 'function') {
+        const serialized =
+          tx && typeof (tx as { serialize?: () => Uint8Array }).serialize === 'function'
+            ? toHex((tx as { serialize: () => Uint8Array }).serialize())
+            : typeof tx === 'string'
+              ? tx
+              : String(tx);
+        const received = await wallet.api.balanceUnsealedTransaction(serialized, {
+          payFees: true,
+        });
+        const raw = received.tx;
+        if (typeof raw === 'string') {
+          return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
+            'signature',
+            'proof',
+            'binding',
+            fromHex(raw),
+          );
+        }
+        return raw as FinalizedTransaction;
+      }
+      return wallet.api.balanceAndProveTransaction(tx, newCoins) as Promise<FinalizedTransaction>;
+    },
+    submitTx: async (tx: unknown) => {
+      if (tx && typeof (tx as { serialize?: () => Uint8Array }).serialize === 'function') {
+        return wallet.api.submitTransaction(toHex((tx as { serialize: () => Uint8Array }).serialize()));
+      }
+      return wallet.api.submitTransaction(tx);
+    },
   };
 }
 
-/**
- * Submit one anonymous check-in. `inviteSecret` is the private witness; it is
- * consumed by the proof and never disclosed on-chain.
- */
+function buildProviders(config: AppConfig, wallet: ConnectedWallet) {
+  setNetworkId(config.network as never);
+  const uris = resolveUris(config, wallet);
+  const zkConfigProvider = new FetchZkConfigProvider(zkAssetBase(), fetch.bind(window));
+  const walletProvider = buildWalletProvider(wallet);
+
+  return {
+    uris,
+    providers: {
+      privateStateProvider: levelPrivateStateProvider({
+        privateStateStoreName: 'anonymous-event-checkin-state',
+        accountId: wallet.state.address,
+        privateStoragePasswordProvider: () => 'Local-Browser-Development-Placeholder-1',
+      }),
+      publicDataProvider: indexerPublicDataProvider(uris.indexer, uris.indexerWs),
+      zkConfigProvider,
+      proofProvider: httpClientProofProvider(uris.prover, zkConfigProvider),
+      walletProvider,
+      midnightProvider: walletProvider,
+    },
+  };
+}
+
+export async function deployEventContract(
+  config: AppConfig,
+  wallet: ConnectedWallet,
+  eventName = DEFAULT_EVENT_NAME,
+): Promise<{ contractAddress: string }> {
+  const { providers } = buildProviders(config, wallet);
+  const deployed = await deployContract(providers as never, {
+    compiledContract: compiledContract() as never,
+    args: [eventName] as never,
+    privateStateId: PRIVATE_STATE_ID,
+    initialPrivateState: {},
+  });
+  const contractAddress = String(
+    (deployed as { deployTxData: { public: { contractAddress: string } } }).deployTxData.public
+      .contractAddress,
+  );
+  return { contractAddress };
+}
+
 export async function submitCheckIn(
   config: AppConfig,
   wallet: ConnectedWallet,
@@ -93,35 +172,11 @@ export async function submitCheckIn(
     throw new Error('Invite secret is required.');
   }
 
-  // setNetworkId expects the SDK's NetworkId enum. Our config uses the string
-  // union; cast is safe because the runtime accepts the network name.
-  setNetworkId(config.network as never);
-  const uris = resolveUris(config, wallet);
-
-  const zkConfigProvider = new FetchZkConfigProvider(
-    // Serve the compiled `managed/event-checkin` zk assets from the app origin.
-    `${window.location.origin}/managed/event-checkin`,
-    fetch.bind(window),
-  );
-  const walletProvider = buildWalletProvider(wallet);
-
-  const providers = {
-    privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'anonymous-event-checkin-state',
-      accountId: wallet.state.address,
-      // Browser-local private state; checkIn has no witnesses so this is empty.
-      privateStoragePasswordProvider: () => 'Local-Browser-Development-Placeholder-1',
-    }),
-    publicDataProvider: indexerPublicDataProvider(uris.indexer, uris.indexerWs),
-    zkConfigProvider,
-    proofProvider: httpClientProofProvider(uris.prover, zkConfigProvider),
-    walletProvider,
-    midnightProvider: walletProvider,
-  };
+  const { providers } = buildProviders(config, wallet);
 
   const deployed = await findDeployedContract(providers as never, {
+    compiledContract: compiledContract() as never,
     contractAddress: config.contractAddress,
-    contract: new Contract({}),
     privateStateId: PRIVATE_STATE_ID,
     initialPrivateState: {},
   } as never);

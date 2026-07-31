@@ -94,24 +94,26 @@ export function listWallets(): InjectedWallet[] {
 }
 
 /**
- * Prefer Lace when several wallets are present; otherwise the first injected
- * connector. Official docs say to let the user choose when there are many —
- * for this submission UI we keep a single-button flow.
+ * Prefer 1AM (non-Lace) when several wallets are present — Preprod + sponsored DUST.
+ * Falls back to Lace / first injected connector.
  */
 export function selectWallet(): InjectedWallet | null {
-  const wallets = listWallets();
-  if (wallets.length === 0) return null;
-  const lace = wallets.find((w) => {
+  const injected = window.midnight;
+  if (!injected) return null;
+  const entries = Object.entries(injected).filter(([, w]) => looksLikeWallet(w)) as [
+    string,
+    InjectedWallet,
+  ][];
+  if (entries.length === 0) return null;
+  const nonLace = entries.find(([key, w]) => {
+    if (key === 'mnLace') return false;
     const label = `${w.name ?? ''} ${w.rdns ?? ''}`.toLowerCase();
-    return label.includes('lace');
+    return !label.includes('lace');
   });
-  return lace ?? wallets[0] ?? null;
+  return (nonLace ?? entries[0])[1];
 }
 
 export function getConnector(): InjectedWallet | null {
-  // Backward-compatible: still honor mnLace if present, else enumerate.
-  const named = window.midnight?.mnLace;
-  if (looksLikeWallet(named)) return named;
   return selectWallet();
 }
 
@@ -178,7 +180,7 @@ export async function connectLace(networkId: string = 'undeployed'): Promise<Con
   const connector = getConnector();
   if (!connector) {
     throw new Error(
-      'No Midnight wallet found. Install the main Lace extension and enable Midnight, then reload.',
+      'No Midnight wallet found. Install 1AM or Lace, enable Midnight, then reload.',
     );
   }
 

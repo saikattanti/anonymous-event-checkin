@@ -12,7 +12,7 @@ function toneFor(kind: ActivityKind): 'neutral' | 'accent' | 'ok' | 'warn' | 'da
   if (kind.includes('success') || kind === 'wallet_connect') return 'ok';
   if (kind.includes('error')) return 'danger';
   if (kind === 'wallet_disconnect') return 'warn';
-  if (kind.startsWith('checkin')) return 'accent';
+  if (kind.startsWith('checkin') || kind.startsWith('deploy')) return 'accent';
   return 'neutral';
 }
 

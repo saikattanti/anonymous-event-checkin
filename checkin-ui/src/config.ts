@@ -21,14 +21,21 @@ function orNull(v: string | undefined | null): string | null {
 }
 
 function envConfig(): AppConfig {
-  const rawNetwork = (import.meta.env.VITE_MIDNIGHT_NETWORK ?? 'undeployed').trim();
-  const network: NetworkId = isNetworkId(rawNetwork) ? rawNetwork : 'undeployed';
+  const fallback = import.meta.env.PROD ? 'preprod' : 'undeployed';
+  const rawNetwork = (
+    import.meta.env.VITE_NETWORK_ID ??
+    import.meta.env.VITE_MIDNIGHT_NETWORK ??
+    fallback
+  ).trim();
+  const network: NetworkId = isNetworkId(rawNetwork) ? rawNetwork : (fallback as NetworkId);
   return {
     network,
     contractAddress: orNull(import.meta.env.VITE_CONTRACT_ADDRESS),
     indexerUri: orNull(import.meta.env.VITE_INDEXER_URI),
     indexerWsUri: orNull(import.meta.env.VITE_INDEXER_WS_URI),
-    proverUri: orNull(import.meta.env.VITE_PROVER_URI),
+    proverUri: orNull(
+      import.meta.env.VITE_PROOF_SERVER_URL ?? import.meta.env.VITE_PROVER_URI,
+    ),
   };
 }
 

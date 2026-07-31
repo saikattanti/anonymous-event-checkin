@@ -13,9 +13,12 @@ export function SettingsPage() {
     config,
     wallet,
     connecting,
+    deploying,
+    deployError,
     laceInstalled,
     connect,
     disconnect,
+    deploy,
     walletError,
     refreshPublicState,
     setContractAddress,
@@ -23,6 +26,7 @@ export function SettingsPage() {
   } = useWallet();
 
   const [addressDraft, setAddressDraft] = useState(config.contractAddress ?? '');
+  const [eventName, setEventName] = useState('Anonymous Event Check-in');
 
   useEffect(() => {
     setAddressDraft(config.contractAddress ?? '');
@@ -34,19 +38,59 @@ export function SettingsPage() {
     void refreshPublicState();
   };
 
+  const onDeploy = async () => {
+    const address = await deploy(eventName.trim() || undefined);
+    if (address) setAddressDraft(address);
+  };
+
   return (
     <div>
       <PageHeader
         kicker="Config"
         title="Workspace setup"
-        description="Contract, network endpoints, and Lace for this browser."
+        description="Deploy with 1AM on Preprod, paste an address, or tune network endpoints."
       />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Surface accent>
+          <h2 className="font-display text-2xl">Deploy event contract</h2>
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">
+            Prefer <strong>1AM</strong> on <strong>Preprod</strong> (sponsored DUST). Unlock, wait
+            until synced, then Deploy once. ZK proving often takes 2–5+ minutes — approve the wallet
+            popup; do not click Deploy again.
+          </p>
+          <div className="mt-5 space-y-3">
+            <Input
+              value={eventName}
+              onChange={(e) => setEventName(e.target.value)}
+              placeholder="Public event name"
+              spellCheck={false}
+            />
+            <Button
+              type="button"
+              variant="accent"
+              onClick={() => void onDeploy()}
+              disabled={!wallet || deploying}
+            >
+              {deploying ? 'Deploying (proving)…' : 'Deploy on Preprod'}
+            </Button>
+            {!wallet ? (
+              <p className="text-sm text-[var(--ink-faint)]">Connect a wallet first.</p>
+            ) : null}
+            {deployError ? <p className="text-sm text-[var(--danger)]">{deployError}</p> : null}
+            {deploying ? (
+              <p className="text-sm text-[var(--ink-muted)]">
+                Leave this tab open. Approve the 1AM popup when it appears — do not click Deploy
+                again.
+              </p>
+            ) : null}
+          </div>
+        </Surface>
+
+        <Surface>
           <h2 className="font-display text-2xl">Contract address</h2>
           <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            Paste the deployed address. Stored locally and applied immediately.
+            Paste a deployed address (or use Deploy). Stored locally and applied immediately.
           </p>
           <form onSubmit={onSaveContract} className="mt-5 space-y-3">
             <div>
@@ -108,7 +152,7 @@ export function SettingsPage() {
                 Prover
               </dt>
               <dd className="max-w-[60%] break-all text-right font-mono text-xs">
-                {config.proverUri ?? '—'}
+                {config.proverUri ?? wallet?.uris.proverServerUri ?? '—'}
               </dd>
             </div>
           </dl>
@@ -116,14 +160,14 @@ export function SettingsPage() {
 
         <Surface>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-display text-2xl">Lace</h2>
+            <h2 className="font-display text-2xl">Midnight wallet</h2>
             <Badge tone={wallet ? 'ok' : laceInstalled ? 'warn' : 'danger'}>
               {wallet ? 'Live' : laceInstalled ? 'Detected' : 'Missing'}
             </Badge>
           </div>
           <p className="mt-3 text-sm text-[var(--ink-muted)]">
-            Auto-connects on localhost when Lace is available. Disconnect disables auto-connect until
-            you connect again.
+            Prefers <strong>1AM</strong> when both wallets are installed. Set network to{' '}
+            <strong>Preprod</strong> to match the app.
           </p>
           {wallet ? (
             <div className="mt-5 space-y-3">
@@ -141,7 +185,7 @@ export function SettingsPage() {
             <div className="mt-5 flex flex-wrap gap-2">
               {laceInstalled ? (
                 <Button variant="accent" onClick={() => void connect()} disabled={connecting}>
-                  {connecting ? 'Connecting…' : 'Connect Lace'}
+                  {connecting ? 'Connecting…' : 'Connect wallet'}
                 </Button>
               ) : (
                 <a
