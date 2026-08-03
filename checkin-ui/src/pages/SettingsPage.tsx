@@ -48,14 +48,14 @@ export function SettingsPage() {
       <PageHeader
         kicker="Config"
         title="Workspace setup"
-        description="Deploy with 1AM on Preprod, paste an address, or tune network endpoints."
+        description="Deploy with 1AM on Preview, paste an address, or tune network endpoints."
       />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Surface accent>
           <h2 className="font-display text-2xl">Deploy event contract</h2>
           <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            Prefer <strong>1AM</strong> on <strong>Preprod</strong> (sponsored DUST). Unlock, wait
+            Prefer <strong>1AM</strong> on <strong>Preview</strong> (sponsored DUST). Unlock, wait
             until synced, then Deploy once. ZK proving often takes 2–5+ minutes — approve the wallet
             popup; do not click Deploy again.
           </p>
@@ -72,7 +72,7 @@ export function SettingsPage() {
               onClick={() => void onDeploy()}
               disabled={!wallet || deploying}
             >
-              {deploying ? 'Deploying (proving)…' : 'Deploy on Preprod'}
+              {deploying ? 'Deploying (proving)…' : 'Deploy on Preview'}
             </Button>
             {!wallet ? (
               <p className="text-sm text-[var(--ink-faint)]">Connect a wallet first.</p>
@@ -167,7 +167,7 @@ export function SettingsPage() {
           </div>
           <p className="mt-3 text-sm text-[var(--ink-muted)]">
             Prefers <strong>1AM</strong> when both wallets are installed. Set network to{' '}
-            <strong>Preprod</strong> to match the app.
+            <strong>Preview</strong> to match the app.
           </p>
           {wallet ? (
             <div className="mt-5 space-y-3">

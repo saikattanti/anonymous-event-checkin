@@ -7,7 +7,7 @@ import App from './App';
 const networkId =
   import.meta.env.VITE_NETWORK_ID ||
   import.meta.env.VITE_MIDNIGHT_NETWORK ||
-  (import.meta.env.PROD ? 'preprod' : 'undeployed');
+  (import.meta.env.PROD ? 'preview' : 'undeployed');
 setNetworkId(networkId as never);
 
 class BootErrorBoundary extends Component<

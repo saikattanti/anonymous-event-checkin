@@ -138,7 +138,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const deploy = useCallback(
     async (eventName?: string): Promise<string | null> => {
       if (!wallet) {
-        setDeployError('Connect 1AM (Preprod) or Lace first.');
+        setDeployError('Connect 1AM (Preview) or Lace first.');
         return null;
       }
       if (deployInFlight.current || deploying) {

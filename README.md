@@ -15,13 +15,17 @@ A **Midnight** DApp where attendees prove they hold a valid invite/check-in secr
 | Resource | Link / value |
 | --- | --- |
 | **Live Web Application** | [https://anonymous-event-checkin.vercel.app/](https://anonymous-event-checkin.vercel.app/) |
-| **Local App UI** | [http://localhost:5173/](http://localhost:5173/) (`npm run dev:preprod`) |
-| **Preprod Compact Contract** | `Pending` |
+| **Local App UI** | [http://localhost:5173/](http://localhost:5173/) (`npm run dev:preview`) |
+| **Preview Compact Contract** | `b90200ad492044f33487a095966ab177dfef9bc957e3d185bae8d2126555006e` |
 | **Demo Video** | [https://youtu.be/gnPuRBhZtxc](https://youtu.be/gnPuRBhZtxc) |
 | **GitHub** | [saikattanti/anonymous-event-checkin](https://github.com/saikattanti/anonymous-event-checkin) |
 | **Product Proposal** | [PROPOSAL.md](PROPOSAL.md) |
+| **Preview notes** | [docs/PREVIEW_STATUS.md](docs/PREVIEW_STATUS.md) |
 
-**Target network:** Midnight **Preprod** via **1AM** (same path as CipherID / PulseBoard). The app is fully wired (wallet connect, browser Deploy, check-in, public ledger). **Preprod contract address: `Pending`** — on-chain deploy can be filled in when wallet sync / proving succeeds; do not block submission on that.
+**Target network:** Midnight **Preview** via **1AM** (Rise-In July migration — Preprod down / faucet offline). Deployed and verified on Preview indexer.
+
+**Preview contract:** `b90200ad492044f33487a095966ab177dfef9bc957e3d185bae8d2126555006e`  
+[Explorer](https://preview.midnightexplorer.com/contracts/0xb90200ad492044f33487a095966ab177dfef9bc957e3d185bae8d2126555006e) · [docs/PREVIEW_STATUS.md](docs/PREVIEW_STATUS.md)
 
 ---
 
@@ -55,44 +59,44 @@ Enforced in `contract/src/event-checkin.compact`: `disclose(name)` for the publi
 
 ---
 
-## Quick Start (Preprod + 1AM)
+## Quick Start (Preview + 1AM)
 
 ```bash
 npm install
 npm run compile
-npm run proof-server:preprod   # local proof server on :6300
-npm run dev:preprod
+npm run proof-server:preview   # local proof server on :6300
+npm run dev:preview
 ```
 
-1. Unlock **1AM** → network **Preprod** → wait until **synced**
+1. Unlock **1AM** → network **Preview** → wait until **synced**
 2. App prefers 1AM when Lace is also installed
-3. **Settings → Deploy on Preprod** once (2–5+ min ZK prove — approve the popup; do not double-click)
+3. **Settings → Deploy on Preview** once (2–5+ min ZK prove — approve the popup; do not double-click)
 4. **Check-in** with any invite secret
 
-Faucet: [https://midnight-tmnight-preprod.nethermind.dev/](https://midnight-tmnight-preprod.nethermind.dev/)
+Faucet: [https://faucet.preview.midnight.network/](https://faucet.preview.midnight.network/)
 
-### Environment (`checkin-ui/.env.preprod`)
+### Environment (`checkin-ui/.env.preview`)
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_NETWORK_ID` / `VITE_MIDNIGHT_NETWORK` | `preprod` |
+| `VITE_NETWORK_ID` / `VITE_MIDNIGHT_NETWORK` | `preview` |
 | `VITE_CONTRACT_ADDRESS` | Published hex (empty until Deploy) |
-| `VITE_INDEXER_URI` | Preprod indexer |
-| `VITE_INDEXER_WS_URI` | Preprod indexer WS |
+| `VITE_INDEXER_URI` | Preview indexer |
+| `VITE_INDEXER_WS_URI` | Preview indexer WS |
 | `VITE_PROOF_SERVER_URL` | Local `:6300` for browser proving |
 
 ### Vercel production env
 
 ```
-VITE_NETWORK_ID=preprod
-VITE_MIDNIGHT_NETWORK=preprod
-VITE_CONTRACT_ADDRESS=Pending
-VITE_INDEXER_URI=https://indexer.preprod.midnight.network/api/v4/graphql
-VITE_INDEXER_WS_URI=wss://indexer.preprod.midnight.network/api/v4/graphql/ws
+VITE_NETWORK_ID=preview
+VITE_MIDNIGHT_NETWORK=preview
+VITE_CONTRACT_ADDRESS=b90200ad492044f33487a095966ab177dfef9bc957e3d185bae8d2126555006e
+VITE_INDEXER_URI=https://indexer.preview.midnight.network/api/v4/graphql
+VITE_INDEXER_WS_URI=wss://indexer.preview.midnight.network/api/v4/graphql/ws
 VITE_PROOF_SERVER_URL=https://anonymous-event-checkin.vercel.app/proof-server
 ```
 
-Update `VITE_CONTRACT_ADDRESS` after a successful Preprod deploy. `vercel.json` proxies `/proof-server/*` for browser CORS.
+Update `VITE_CONTRACT_ADDRESS` after a successful Preview deploy. `vercel.json` proxies `/proof-server/*` → Preview proof server for browser CORS.
 
 ---
 

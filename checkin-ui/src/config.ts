@@ -21,7 +21,7 @@ function orNull(v: string | undefined | null): string | null {
 }
 
 function envConfig(): AppConfig {
-  const fallback = import.meta.env.PROD ? 'preprod' : 'undeployed';
+  const fallback = import.meta.env.PROD ? 'preview' : 'undeployed';
   const rawNetwork = (
     import.meta.env.VITE_NETWORK_ID ??
     import.meta.env.VITE_MIDNIGHT_NETWORK ??

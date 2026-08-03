@@ -44,7 +44,6 @@ function compiledContract() {
 function resolveProverUri(prover: string): string {
   if (
     typeof window !== 'undefined' &&
-    import.meta.env.PROD &&
     /proof-server\.(preprod|preview)\.midnight\.network/i.test(prover)
   ) {
     return `${window.location.origin}/proof-server`;
@@ -110,10 +109,28 @@ function buildWalletProvider(wallet: ConnectedWallet) {
       return wallet.api.balanceAndProveTransaction(tx, newCoins) as Promise<FinalizedTransaction>;
     },
     submitTx: async (tx: unknown) => {
-      if (tx && typeof (tx as { serialize?: () => Uint8Array }).serialize === 'function') {
-        return wallet.api.submitTransaction(toHex((tx as { serialize: () => Uint8Array }).serialize()));
+      // Mirror CipherID: watchForTxData needs a TransactionOffset.identifier from
+      // the finalized tx, not whatever the wallet RPC returns (hash / void / object).
+      const finalized = tx as FinalizedTransaction & {
+        identifiers?: () => string[];
+        serialize?: () => Uint8Array;
+      };
+      const hex =
+        typeof finalized.serialize === 'function'
+          ? toHex(finalized.serialize())
+          : typeof tx === 'string'
+            ? tx
+            : String(tx);
+      await wallet.api.submitTransaction(hex);
+      const ids =
+        typeof finalized.identifiers === 'function' ? finalized.identifiers() : [];
+      const identifier = ids[0];
+      if (!identifier) {
+        throw new Error(
+          'Wallet submitted but no transaction identifier was available for indexer watch.',
+        );
       }
-      return wallet.api.submitTransaction(tx);
+      return identifier;
     },
   };
 }

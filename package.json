@@ -24,11 +24,13 @@
     "check-balance": "npx tsx checkin-cli/src/check-balance.ts",
     "network": "npx tsx checkin-cli/src/network.ts",
     "proof-server:start": "docker compose up -d",
+    "proof-server:preview": "docker compose -f proof-server-local.yml up -d",
     "proof-server:preprod": "docker compose -f proof-server-local.yml up -d",
     "proof-server:stop": "docker compose down",
     "clean": "rm -rf contract/src/managed",
     "test:e2e": "tsx scripts/e2e-check.ts",
     "dev": "npm run dev --workspace=@midnight-ntwrk/checkin-ui",
+    "dev:preview": "npm run dev:preview --workspace=@midnight-ntwrk/checkin-ui",
     "dev:preprod": "npm run dev:preprod --workspace=@midnight-ntwrk/checkin-ui",
     "build": "npm run build --workspace=@midnight-ntwrk/checkin-ui"
   },

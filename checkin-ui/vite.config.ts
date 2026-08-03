@@ -22,6 +22,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@contract': path.resolve(__dirname, '..', 'contract', 'src', 'managed', 'event-checkin'),
       'object-inspect': path.resolve(__dirname, 'src/shims/object-inspect.js'),
+      // midnight-js indexer Apollo HttpLink uses cross-fetch; coerce empty oneOf offsets
+      'cross-fetch': path.resolve(__dirname, 'src/shims/cross-fetch-offset-fix.ts'),
     },
     dedupe: [
       '@midnight-ntwrk/compact-runtime',
@@ -39,5 +41,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      '/proof-server': {
+        target: 'https://proof-server.preview.midnight.network',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (p) => p.replace(/^\/proof-server/, ''),
+      },
+    },
   },
 });
