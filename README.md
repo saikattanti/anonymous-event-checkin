@@ -46,27 +46,27 @@ A **Midnight** DApp where attendees prove they hold a valid invite/check-in secr
 ### 1. Landing
 Product entry and live public-ledger preview for anonymous event check-in.
 
-![Landing](checkin-ui/public/landing.png)
+<img src="checkin-ui/public/landing.png" alt="Landing" width="800" />
 
 ### 2. Dashboard
 Network badge, connected wallet, event name, and anonymous `checkInCount`.
 
-![Dashboard](checkin-ui/public/dashboard.png)
+<img src="checkin-ui/public/dashboard.png" alt="Dashboard" width="800" />
 
 ### 3. Check-in
 Submit an invite secret; the circuit proves knowledge without revealing identity.
 
-![Check-in](checkin-ui/public/check-in.png)
+<img src="checkin-ui/public/check-in.png" alt="Check-in" width="800" />
 
 ### 4. Activity logs
 Local browser activity trail for connect, deploy, and check-in actions.
 
-![Logs](checkin-ui/public/logs.png)
+<img src="checkin-ui/public/logs.png" alt="Logs" width="800" />
 
 ### 5. Config / Settings
 1AM Deploy on Preview, paste contract address, and inspect indexer / prover URIs.
 
-![Config](checkin-ui/public/config.png)
+<img src="checkin-ui/public/config.png" alt="Config" width="800" />
 
 ---
 
